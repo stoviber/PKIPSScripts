@@ -1,4 +1,9 @@
-﻿
+﻿#################################################################################################
+# Useful functions for ADCS PKI Configuration and Builds
+# Stevie Barr
+# Caisteal Services
+#################################################################################################
+
 function Create-Root-CAPolicy()
 {
     $capolicyInf = `
@@ -105,8 +110,6 @@ function Set-CACertPublicationUrlRegistry($CACertPublicationUrlsString)
 
 function Sign-SubCACert($ICACommonName, $RCACommonName)
 {
-    $ICACommonName = "HFED-Issuing-CA1"
-    $RCACommonName = "HFedRCA"
 
     Write-Host "Submitting C:\Windows\System32\CertSrv\CertEnroll\$ICAComonName.req to $RCACommonName"
     [System.String]$RequestResult = & "$($ENV:SystemRoot)\System32\Certreq.exe" -Config ".\$RCACommonName" -Submit "C:\Windows\System32\CertSrv\CertEnroll\$ICAComonName.req"
