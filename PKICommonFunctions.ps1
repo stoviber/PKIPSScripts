@@ -91,3 +91,40 @@ function Install-YubiCNG($PathToYubiCNGMSI, $ConnectorUrl, $AuthKeysetPassword, 
     Set-ItemProperty HKLM:\SOFTWARE\Yubico\YubiHSM -Name AuthKeysetPassword $AuthKeysetPassword 
     Set-ItemProperty HKLM:\SOFTWARE\Yubico\YubiHSM -Name AuthKeysetID $AuthKeysetID 
 }
+
+function Set-CRLPublicationUrlRegistry($CRLPublicationUrlsString)
+{
+    #Set the CRL distribution points
+    & "$($ENV:SystemRoot)\System32\certutil.exe" -setreg CA\CRLPublicationURLs $CRLPublicationUrlsString
+}
+
+function Set-CACertPublicationUrlRegistry($CACertPublicationUrlsString)
+{
+    & "$($ENV:SystemRoot)\System32\certutil.exe" -setreg CA\CACertPublicationURLs $CACertPublicationUrlsString 
+}
+
+function Sign-SubCACert($ICACommonName, $RCACommonName)
+{
+    $ICACommonName = "HFED-Issuing-CA1"
+    $RCACommonName = "HFedRCA"
+
+    Write-Host "Submitting C:\Windows\System32\CertSrv\CertEnroll\$ICAComonName.req to $RCACommonName"
+    [System.String]$RequestResult = & "$($ENV:SystemRoot)\System32\Certreq.exe" -Config ".\$RCACommonName" -Submit "C:\Windows\System32\CertSrv\CertEnroll\$ICAComonName.req"
+    $Matches = [Regex]::Match($RequestResult, 'RequestId:\s([0-9]*)')
+
+    if ($Matches.Groups.Count -lt 2)
+    {
+        Write-Verbose -Message "Error getting Request ID from SubCA certificate submission."
+        Throw "Error getting Request ID from SubCA certificate submission."
+    }
+    [int]$RequestId = $Matches.Groups[1].Value
+    Write-Host "Issuing $RequestId in $RCACommonName"
+    [System.String]$SubmitResult = & "$($ENV:SystemRoot)\System32\CertUtil.exe" -Resubmit $RequestId
+    if ($SubmitResult -notlike 'Certificate issued.*')
+    {
+        Write-Verbose -Message "Unexpected result issuing SubCA request."
+        Throw "Unexpected result issuing SubCA request."
+    }
+    Write-Host "Retrieving C:\Windows\System32\CertSrv\CertEnroll\$ICACommonName.crt from $RCACommonName)"
+    [System.String]$RetrieveResult = & "$($ENV:SystemRoot)\System32\Certreq.exe" -Config ".\$RCACommonName" -Retrieve $RequestId "C:\Windows\System32\CertSrv\CertEnroll\$ICACommonName.crt"
+}
