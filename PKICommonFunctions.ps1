@@ -9,6 +9,12 @@ function Create-Root-CAPolicy()
     $capolicyInf = `
 '[Version]
 Signature="$Windows NT$"
+;Allow CA Certsto be used for all purposes
+[PolicyStatementExtension]
+Policies=AllIssuancePolicy
+Critical=False
+[AllIssuancePolicy]
+OID=2.5.29.32.0
 [BasicConstraintsExtension]
 Critical=Yes
 [CRLDistributionPoint]
